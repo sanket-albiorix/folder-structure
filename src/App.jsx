@@ -1,35 +1,89 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import FolderControls from "./components/FolderControls";
+import {
+  createFolder,
+  deleteFolder,
+  getFolders,
+  initializeRoot,
+} from "./services/folderService";
+import FolderCollection from "./components/FolderCollection";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [folders, setFolders] = useState([]);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async (payload) => {
+    let res;
+    setLoading(true);
+    if (!selectedItem) {
+      res = await initializeRoot(payload);
+    } else {
+      res = await createFolder(payload);
+    }
+    setLoading(false);
+    if (res) {
+      setFolders(res);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setLoading(true);
+    const res = await deleteFolder(id);
+    setLoading(false);
+    if (res) {
+      setFolders(res);
+      setSelectedItem(null);
+    }
+  };
+
+  const fetchFolders = async () => {
+    setInitialLoading(true);
+    const res = await getFolders();
+    setInitialLoading(false);
+    if (res) {
+      setFolders(res);
+    }
+  };
+
+  useEffect(() => {
+    fetchFolders();
+  }, []);
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      {initialLoading ? (
+        <>loading...</>
+      ) : (
+        <div
+          onClick={() => setSelectedItem(null)}
+          className="container"
+          style={{ pointerEvents: loading ? "none" : "auto" }}
+        >
+          <FolderControls
+            onCreate={handleCreate}
+            onDelete={handleDelete}
+            selectedItem={selectedItem}
+          />
+          {loading && (
+            <>
+              saving details in database...
+              <br />
+              <br />
+            </>
+          )}
+          <FolderCollection
+            selectedItem={selectedItem}
+            setSelected={setSelectedItem}
+            folders={folders}
+          />
+        </div>
+      )}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
